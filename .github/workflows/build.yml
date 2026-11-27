@@ -1,0 +1,77 @@
+
+name: Build EXE and Setup
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Download source
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller reportlab arabic-reshaper python-bidi openpyxl
+
+      - name: Check source
+        run: python -m py_compile BuildingManager_V9.py
+
+      - name: Build EXE
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name BuildingManager --collect-all reportlab --collect-all openpyxl --collect-all arabic_reshaper --collect-all bidi BuildingManager_V9.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Create installer script
+        shell: pwsh
+        run: |
+          @'
+          [Setup]
+          AppId=BuildingManager
+          AppName=BuildingManager
+          AppVersion=9.0
+          DefaultDirName={autopf}\BuildingManager
+          DefaultGroupName=BuildingManager
+          OutputDir=dist
+          OutputBaseFilename=BuildingManager_Setup
+          Compression=lzma
+          SolidCompression=yes
+          PrivilegesRequired=admin
+
+          [Files]
+          Source: "dist\BuildingManager.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+          [Icons]
+          Name: "{autoprograms}\BuildingManager"; Filename: "{app}\BuildingManager.exe"
+          Name: "{autodesktop}\BuildingManager"; Filename: "{app}\BuildingManager.exe"
+          '@ | Set-Content installer.iss
+
+      - name: Build Setup
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload EXE and Setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: BuildingManager-Windows
+          path: |
+            dist/BuildingManager.exe
+            dist/BuildingManager_Setup.exe
+          if-no-files-found: error
+          
