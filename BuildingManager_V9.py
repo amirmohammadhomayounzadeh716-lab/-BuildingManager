@@ -4118,57 +4118,62 @@ class App(tk.Tk, ReportsMixin):
         self.bind_all("<Button-4>", self._scroll_under_pointer)
         self.bind_all("<Button-5>", self._scroll_under_pointer)
 
+    
     def _scroll_under_pointer(self, event):
-        """ویل موس را فقط به اسکرول مستقلِ همان بخش زیر نشانگر می‌فرستد."""
+        """ویل موس را فقط به نزدیک‌ترین کنترل اسکرول‌پذیر زیر نشانگر می‌فرستد."""
         try:
             widget = self.winfo_containing(event.x_root, event.y_root)
             if widget is None:
                 return None
 
-            # فقط کنترل‌های داخل محتوای صفحه اصلی؛ پنجره‌های محاوره‌ای مستقل‌اند.
-            probe = widget
-            inside_content = False
-            while probe is not None:
-                if probe is self.content:
-                    inside_content = True
-                    break
-                probe = getattr(probe, "master", None)
-            if not inside_content:
-                return None
-
+            # نزدیک‌ترین کنترل اسکرول‌پذیر را در زنجیره والدها پیدا کن.
             target = None
             probe = widget
-            while probe is not None and probe is not self.content:
-                if probe.winfo_class() in ("Canvas", "Text", "Treeview", "Listbox"):
-                    if callable(getattr(probe, "yview", None)) and callable(
-                        getattr(probe, "yview_scroll", None)
+
+            while probe is not None:
+                if probe.winfo_class() in (
+                    "Canvas", "Text", "Treeview", "Listbox"
+                ):
+                    if (
+                        callable(getattr(probe, "yview", None))
+                        and callable(getattr(probe, "yview_scroll", None))
                     ):
                         target = probe
                         break
+
                 probe = getattr(probe, "master", None)
 
             if target is None:
                 return None
 
-            # اگر این بخش واقعاً محتوای اضافه برای پیمایش ندارد، رویداد را مصرف نکن.
+            # اگر محتوای اضافه‌ای برای اسکرول وجود ندارد، کاری نکن.
             first, last = target.yview()
             if first <= 0 and last >= 1:
                 return None
 
+            # تشخیص جهت حرکت در ویندوز و لینوکس
             delta = getattr(event, "delta", 0)
+            number = getattr(event, "num", None)
+
             if delta:
-                units = int(-delta / 120) if abs(delta) >= 120 else (-1 if delta > 0 else 1)
-            elif getattr(event, "num", None) == 4:
+                units = (
+                    int(-delta / 120)
+                    if abs(delta) >= 120
+                    else (-1 if delta > 0 else 1)
+                )
+            elif number == 4:
                 units = -1
-            elif getattr(event, "num", None) == 5:
+            elif number == 5:
                 units = 1
             else:
                 return None
 
             target.yview_scroll(units, "units")
             return "break"
+
         except (tk.TclError, AttributeError, TypeError):
             return None
+
 
     def show(self, page):
         self.page = page
@@ -4500,26 +4505,6 @@ class App(tk.Tk, ReportsMixin):
         scrollbar.pack(side=side_end(), fill="y")
         canvas.pack(side=side_start(), fill="both", expand=True)
 
-        def wheel(event):
-            if getattr(event, "num", None) == 4:
-                canvas.yview_scroll(-1, "units")
-            elif getattr(event, "num", None) == 5:
-                canvas.yview_scroll(1, "units")
-            elif getattr(event, "delta", 0):
-                canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
-            return "break"
-
-        def enable_wheel(_event=None):
-            return None
-
-        def disable_wheel(_event=None):
-            return None
-
-        canvas.bind("<Enter>", enable_wheel)
-        canvas.bind("<Leave>", disable_wheel)
-        content.bind("<Enter>", enable_wheel)
-        content.bind("<Leave>", disable_wheel)
-
         y, m = self.year, self.month
         ov, acc = self.db.overview(y, m), self.db.accounts()
         n1, n2 = acc["pdf"]
@@ -4738,11 +4723,6 @@ class App(tk.Tk, ReportsMixin):
         scroll.pack(side=side_end(), fill="y")
         canvas.pack(side=side_start(), fill="both", expand=True)
 
-        def wheel(event):
-            canvas.yview_scroll(-1 if (getattr(event, "num", 0) == 4 or getattr(event, "delta", 0) > 0) else 1, "units")
-
-        for sequence in ("<MouseWheel>", "<Button-4>", "<Button-5>"):
-            win.bind(sequence, wheel)
         variables = {}
         for unit in units:
             line = ttk.Frame(inner)
@@ -5306,16 +5286,6 @@ class App(tk.Tk, ReportsMixin):
         logical_content.bind("<Configure>", update_logical_scrollregion)
         logical_canvas.bind("<Configure>", resize_logical_content)
 
-        def logical_mousewheel(event):
-            if getattr(event, "delta", 0):
-                logical_canvas.yview_scroll(int(-event.delta / 120), "units")
-            elif getattr(event, "num", None) == 4:
-                logical_canvas.yview_scroll(-1, "units")
-            elif getattr(event, "num", None) == 5:
-                logical_canvas.yview_scroll(1, "units")
-            return "break"
-
-
         # --- حساب‌ها ---
         box = group(logical_content, "مدیریت حساب‌ها و کارت‌های مالی")
         multi_opts = [("1", T("فعال")), ("0", T("غیرفعال"))]
@@ -5365,15 +5335,6 @@ class App(tk.Tk, ReportsMixin):
 
         export_box.bind("<Configure>", update_export_scrollregion)
         export_canvas.bind("<Configure>", resize_export_content)
-
-        def export_mousewheel(event):
-            if getattr(event, "delta", 0):
-                export_canvas.yview_scroll(int(-event.delta / 120), "units")
-            elif getattr(event, "num", None) == 4:
-                export_canvas.yview_scroll(-1, "units")
-            elif getattr(event, "num", None) == 5:
-                export_canvas.yview_scroll(1, "units")
-            return "break"
 
         ttk.Label(export_box, text=T("ترتیب پیش‌فرض جدول‌ها در هر نوع خروجی را جداگانه انتخاب کنید."),
                   style="Bold.TLabel").pack(anchor=text_anchor(), pady=(4, 10))
