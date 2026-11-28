@@ -361,30 +361,30 @@ T = i18n.t
 
 
 def _validate_raw_i18n():
-    """تمام ردیف‌های ترجمه را در شروع برنامه بررسی می‌کند و فقط هشدار می‌دهد.
-
-    آزمون دستی: یک ردیف ۸ستونی یا یک کلید تکراری به _RAW اضافه کنید؛ هشدار باید ثبت شود.
-    """
+    """Validate all raw translation rows and raise when malformed or duplicated."""
     seen = set()
+    failures = []
     for number, line in enumerate(_RAW.strip().splitlines(), 1):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         parts = [part.strip() for part in line.split(" | ")]
         if len(parts) != 9:
-            AppLogger.warning(
-                f"I18n row {number} invalid: expected 9 columns, got {len(parts)}"
-            )
+            failures.append(f"row {number}: expected 9 columns, got {len(parts)}")
             continue
         key = _norm_key(parts[0])
         if not key:
-            AppLogger.warning(f"I18n row {number} invalid: empty key")
+            failures.append(f"row {number}: empty key")
         elif any(not part for part in parts[1:]):
-            AppLogger.warning(f"I18n row {number} invalid: empty translation column")
+            failures.append(f"row {number}: empty translation column")
         elif key in seen:
-            AppLogger.warning(f"I18n row {number} invalid: duplicate key {parts[0]!r}")
+            failures.append(f"row {number}: duplicate key {parts[0]!r}")
         else:
             seen.add(key)
+    if failures:
+        details = "; ".join(failures)
+        AppLogger.error(f"_validate_raw_i18n failed: {details}")
+        raise AssertionError(f"_validate_raw_i18n failed: {details}")
 
 
 def month_name(month):
