@@ -170,11 +170,16 @@ def days_in_month(year, month):
     return 30 if is_leap(year) else 29
 
 
-def _self_test_jalali():
-    """آزمون‌های مرزی تقویم را ثبت می‌کند و در شکست، اجرای برنامه را ادامه می‌دهد.
+def _raise_self_test_failures(name, failures):
+    """Make smoke-test failures visible to CI and callers instead of logging and continuing."""
+    if failures:
+        details = "; ".join(failures)
+        AppLogger.error(f"{name} failed: {details}")
+        raise AssertionError(f"{name} failed: {details}")
 
-    آزمون دستی: اجرای برنامه باید آزمون‌های سال‌های ۱۴۰۳ تا ۱۴۰۸ را در شروع بررسی کند.
-    """
+
+def _self_test_jalali():
+    """Run calendar boundary checks and fail loudly if any assertion is false."""
     tests = (
         ("JDN year 1403->1404 must span 366 days", lambda: _jalali_to_jdn(1404, 1, 1) - _jalali_to_jdn(1403, 1, 1) == 366),
         ("JDN year 1404->1405 must span 365 days", lambda: _jalali_to_jdn(1405, 1, 1) - _jalali_to_jdn(1404, 1, 1) == 365),
@@ -186,29 +191,27 @@ def _self_test_jalali():
         ("is_leap(1404) must be False", lambda: is_leap(1404) is False),
         ("is_leap(1407) must be False", lambda: is_leap(1407) is False),
         ("is_leap(1408) must be True", lambda: is_leap(1408) is True),
-        # در سال کبیسه، ۲۹ اسفند دو روز تا اول فروردین فاصله دارد و ۳۰ اسفند یک روز.
         ("JDN 1403/12/29 to 1404/01/01 must differ by 2", lambda: _jalali_to_jdn(1404, 1, 1) - _jalali_to_jdn(1403, 12, 29) == 2),
         ("JDN 1403/12/30 to 1404/01/01 must differ by 1", lambda: _jalali_to_jdn(1404, 1, 1) - _jalali_to_jdn(1403, 12, 30) == 1),
         ("days_in_month(1403, 12) must be 30", lambda: days_in_month(1403, 12) == 30),
         ("days_in_month(1404, 12) must be 29", lambda: days_in_month(1404, 12) == 29),
-        # FIX(jalali-1405-tests): explicitly cover current-year date parsing and Esfand length.
         ("parse_shamsi 1405/01/01", lambda: parse_shamsi("1405/01/01") == (1405, 1, 1)),
         ("parse_shamsi Persian digits in 1405", lambda: parse_shamsi("۱۴۰۵/۱۲/۲۹") == (1405, 12, 29)),
         ("1405 Esfand has 29 days", lambda: days_in_month(1405, 12) == 29),
         ("1405/12/30 is invalid", lambda: parse_shamsi("1405/12/30") is None),
     )
-    # اجرای شرطی تست‌ها حتی با python -O ضروری است؛ assert ساده در آن حالت حذف می‌شود.
-    # آزمون دستی: برنامه را با python -O اجرا کنید و مطمئن شوید تست‌ها همچنان بررسی می‌شوند.
+    failures = []
     for label, check in tests:
         try:
             if not check():
-                raise AssertionError(label)
-        except Exception:
-            AppLogger.exception(f"_self_test_jalali failed: {label}")
+                failures.append(label)
+        except Exception as exc:
+            failures.append(f"{label}: {type(exc).__name__}: {exc}")
+    _raise_self_test_failures("_self_test_jalali", failures)
 
 
-# FIX(1): exercise decimal-like separators and valid grouped thousands at startup.
 def _self_test_parse_money():
+    """Verify accepted whole-toman formats and expected validation errors."""
     checks = (
         ("1,5", "money-decimal-not-allowed"),
         ("1,234", 1234),
@@ -217,32 +220,36 @@ def _self_test_parse_money():
         ("۱۲٬۳۴۵", 12345),
         ("1٫5", "money-decimal-not-allowed"),
         ("12 345", 12345),
-        ("1234", 1234),       # FIX(money-plain-digits): protect ungrouped four-digit values.
-        ("50000", 50000),     # FIX(money-five-digits): protect ungrouped five-digit values.
+        ("1234", 1234),
+        ("50000", 50000),
         ("1 2", "money-decimal-not-allowed"),
         ("", 0),
         ("abc", "ValueError"),
     )
+    failures = []
     for raw, expected in checks:
         try:
             actual = parse_money(raw)
-            if isinstance(expected, str):
-                AppLogger.warning(f"_self_test_parse_money failed: {raw!r} should raise {expected}")
-            elif actual != expected:
-                AppLogger.warning(f"_self_test_parse_money failed: {raw!r}: got {actual!r}, expected {expected!r}")
         except Exception as exc:
-            expected_error = (
+            valid_error = (
                 str(exc) == expected if expected == "money-decimal-not-allowed"
                 else isinstance(exc, ValueError) if expected == "ValueError"
                 else False
             )
-            if not expected_error:
-                AppLogger.exception(f"_self_test_parse_money failed for {raw!r}: {exc}")
+            if not valid_error:
+                failures.append(f"{raw!r}: unexpected {type(exc).__name__}: {exc}")
+        else:
+            if isinstance(expected, str):
+                failures.append(f"{raw!r}: expected {expected} error, got {actual!r}")
+            elif actual != expected:
+                failures.append(f"{raw!r}: got {actual!r}, expected {expected!r}")
+    _raise_self_test_failures("_self_test_parse_money", failures)
 
 
-# FIX(2): verify the version-2 legacy income schema receives both period columns.
 def _self_test_migrate_income_backfill():
+    """Verify legacy income migration and fail if the backfilled period is wrong."""
     connection = None
+    failures = []
     try:
         connection = sqlite3.connect(":memory:", factory=SafeSQLiteConnection)
         connection.row_factory = sqlite3.Row
@@ -267,16 +274,16 @@ def _self_test_migrate_income_backfill():
         db._migrate()
         row = connection.execute("SELECT year, month FROM incomes WHERE id=1").fetchone()
         if not row or (row["year"], row["month"]) != (1405, 2):
-            AppLogger.warning("_self_test_migrate_income_backfill failed: expected (1405, 2)")
+            failures.append("expected income period (1405, 2)")
     except Exception as exc:
-        AppLogger.exception(f"_self_test_migrate_income_backfill failed: {exc}")
+        failures.append(f"{type(exc).__name__}: {exc}")
     finally:
         if connection is not None:
             try:
                 connection.close()
             except Exception:
                 pass
-
+    _raise_self_test_failures("_self_test_migrate_income_backfill", failures)
 
 
 def parse_shamsi(text):
