@@ -1,6 +1,10 @@
 ; BuildingManager Windows installer (Inno Setup)
 #define AppName "BuildingManager"
-#define AppVersion "18.7"
+#if GetEnv("APP_VERSION") != ""
+  #define AppVersion GetEnv("APP_VERSION")
+#else
+  #define AppVersion "18.8"
+#endif
 #define AppPublisher "Amir-Mohammad"
 #define AppExeName "BuildingManager.exe"
 
