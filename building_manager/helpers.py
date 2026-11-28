@@ -174,7 +174,7 @@ def _raise_self_test_failures(name, failures):
     """Make smoke-test failures visible to CI and callers instead of logging and continuing."""
     if failures:
         details = "; ".join(failures)
-        AppLogger.error(f"{name} failed: {details}")
+        AppLogger.warning(f"{name} failed: {details}")
         raise AssertionError(f"{name} failed: {details}")
 
 
