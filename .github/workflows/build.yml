@@ -70,14 +70,22 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Move v18.8 tag to the validated release commit
+        if: github.ref == 'refs/heads/v18.8'
+        shell: pwsh
+        run: |
+          git tag -f v18.8 $env:GITHUB_SHA
+          git push origin refs/tags/v18.8 --force
+
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/v18.8'
+        if: github.ref == 'refs/heads/v18.8'
         uses: softprops/action-gh-release@v2
         with:
           name: BuildingManager v18.8
           tag_name: v18.8
           target_commitish: main
           generate_release_notes: true
+          overwrite_files: true
           files: dist/BuildingManager_Setup.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
