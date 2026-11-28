@@ -248,6 +248,9 @@ def _self_test_parse_money():
 
 def _self_test_migrate_income_backfill():
     """Verify legacy income migration and fail if the backfilled period is wrong."""
+    # Import lazily to avoid the helpers <-> database module import cycle.
+    from .database import Database
+
     connection = None
     failures = []
     try:
