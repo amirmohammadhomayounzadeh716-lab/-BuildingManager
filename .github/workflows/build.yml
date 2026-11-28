@@ -6,7 +6,6 @@ on:
     branches:
       - main
       - refactor/modular-v18.7
-      - release/v18.7
     tags:
       - "v*"
 
@@ -47,7 +46,35 @@ jobs:
         run: choco install innosetup --yes --no-progress
 
       - name: Build Setup.exe
+        shell: pwsh
         run: |
+          if ($env:GITHUB_REF_NAME -match '^v(\d+\.\d+(?:\.\d+)?)
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: BuildingManager-Windows-${{ github.ref_name }}
+          path: |
+            dist/BuildingManager_Setup.exe
+            dist/BuildingManager/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BuildingManager ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/BuildingManager_Setup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+) {
+            $env:APP_VERSION = $Matches[1]
+          } else {
+            $env:APP_VERSION = '18.8'
+          }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
 
       - name: Upload Windows build
