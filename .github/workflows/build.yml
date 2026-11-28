@@ -63,7 +63,7 @@ jobs:
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: BuildingManager-Windows-${{ github.ref_name }}
+          name: BuildingManager-Windows-${{ github.run_id }}
           path: |
             dist/BuildingManager_Setup.exe
             dist/BuildingManager/
