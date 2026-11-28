@@ -47,9 +47,8 @@ class PdfKit:
                     if word:
                         longest = max(longest, self._text_width(word, self.BASE_CELL_FONT))
             usable = max(1.0, width - self.CELL_PAD_X)
-            size = self.BASE_CELL_FONT
-            if longest > usable:
-                size = self.BASE_CELL_FONT * usable / longest
+            # Use available room to enlarge short values, while keeping long words readable.
+            size = self.BASE_CELL_FONT * usable / max(longest, 1.0)
             # با حداقل فونت تعریف‌شده در کلاس هماهنگ می‌مانیم تا متن PDF
             # به اندازه‌های بسیار ریز و ناخوانا (مثلاً ۵pt) سقوط نکند.
             # Grow short-content columns up to MAX_CELL_FONT; shrink only when required.
