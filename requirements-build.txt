@@ -1,0 +1,6 @@
+# Build-time dependencies; runtime Python is bundled by PyInstaller.
+pyinstaller>=6.0
+reportlab
+arabic-reshaper
+python-bidi
+openpyxl
