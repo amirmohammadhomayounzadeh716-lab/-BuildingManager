@@ -70,6 +70,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # Keep the legacy v18.8 branch workflow compatible.
       - name: Move v18.8 tag to the validated release commit
         if: github.ref == 'refs/heads/v18.8'
         shell: pwsh
@@ -77,38 +78,35 @@ jobs:
           git tag -f v18.8 $env:GITHUB_SHA
           git push origin refs/tags/v18.8 --force
 
+      # Every version tag (v18.9, v19.0, etc.) gets the same bilingual release format.
       - name: Publish GitHub Release
-        if: github.ref == 'refs/heads/v18.8'
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/v18.8'
         uses: softprops/action-gh-release@v2
         with:
-          name: BuildingManager v18.8 | نسخه ۱۸.۸
-          tag_name: v18.8
+          name: BuildingManager ${{ github.ref_name }} | نسخه ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           target_commitish: main
           generate_release_notes: false
           body: |
-            ## 🇮🇷 فارسی
+            ## فارسی
 
-            ### تغییرات نسخه ۱۸.۸
-            - اضافه‌شدن صفحه «راهنمای استفاده» به برنامه، همراه با بخش‌های بازشونده برای آموزش قسمت‌های مختلف و پاسخ به پرسش‌های رایج.
-            - رفع و بهبود موارد گزارش‌شده در برنامه و آماده‌سازی نسخه پایدار ۱۸.۸.
-            - بهبود فرایند ساخت خودکار و انتشار فایل نصب ویندوز.
-            - اصلاح بررسی‌های خودکار پروژه برای اطمینان از کامپایل ماژول‌ها و اجرای آزمون‌های اصلی.
+            ### تغییرات نسخه ${{ github.ref_name }}
+            - تغییرات و قابلیت‌های جدید این نسخه در این بخش نوشته می‌شود.
+            - بهبودها و اصلاح خطاهای انجام‌شده در این نسخه در این بخش فهرست می‌شوند.
 
             ### دریافت و نصب
-            فایل نصب ویندوز را از بخش دارایی‌های همین انتشار با نام `BuildingManager_Setup.exe` دریافت کنید.
+            فایل نصب ویندوز را از بخش دارایی‌های همین انتشار دریافت کنید.
 
             ---
 
-            ## 🇬🇧 English
+            ## English
 
-            ### What's new in v18.8
-            - Added an in-app “User Guide” page with expandable sections covering key features and frequently asked questions.
-            - Fixed reported issues and made improvements in preparation for the stable v18.8 release.
-            - Improved the automated Windows build and release process.
-            - Updated project smoke checks to verify Python module compilation and core functionality.
+            ### What's new in ${{ github.ref_name }}
+            - New features and changes included in this version are listed here.
+            - Improvements and bug fixes included in this version are listed here.
 
             ### Download and install
-            Download `BuildingManager_Setup.exe` from the Assets section of this release.
+            Download the Windows installer from the Assets section of this release.
           overwrite_files: true
           files: dist/BuildingManager_Setup.exe
         env:
