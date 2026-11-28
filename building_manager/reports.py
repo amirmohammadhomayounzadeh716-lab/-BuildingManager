@@ -52,7 +52,8 @@ class PdfKit:
                 size = self.BASE_CELL_FONT * usable / longest
             # با حداقل فونت تعریف‌شده در کلاس هماهنگ می‌مانیم تا متن PDF
             # به اندازه‌های بسیار ریز و ناخوانا (مثلاً ۵pt) سقوط نکند.
-            sizes.append(max(self.MIN_CELL_FONT, min(self.BASE_CELL_FONT, size)))
+            # Grow short-content columns up to MAX_CELL_FONT; shrink only when required.
+            sizes.append(max(self.MIN_CELL_FONT, min(self.MAX_CELL_FONT, size)))
         return sizes
 
     def _paragraph(self, text, width, *, style=None, unbroken=False, bold=False, font_size=None):
@@ -512,6 +513,13 @@ class ReportsMixin:
             months = [m for m, var in selected.items() if var.get()]
             if not months:
                 messagebox.showwarning(T("توجه"), T("حداقل یک ماه را انتخاب کنید."), parent=dialog)
+                return
+            if months != list(range(months[0], months[-1] + 1)):
+                messagebox.showwarning(
+                    T("توجه"),
+                    "برای تطبیق جمع گردش‌ها با موجودی ابتدا و پایان دوره، ماه‌های گزارش باید پیوسته باشند.",
+                    parent=dialog,
+                )
                 return
             result.update(year=year, months=months)
             dialog.destroy()
