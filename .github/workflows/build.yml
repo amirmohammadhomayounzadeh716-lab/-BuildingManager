@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - refactor/modular-v18.7
+      - fix/v18.8
     tags:
       - "v*"
 
