@@ -81,10 +81,34 @@ jobs:
         if: github.ref == 'refs/heads/v18.8'
         uses: softprops/action-gh-release@v2
         with:
-          name: BuildingManager v18.8
+          name: BuildingManager v18.8 | نسخه ۱۸.۸
           tag_name: v18.8
           target_commitish: main
-          generate_release_notes: true
+          generate_release_notes: false
+          body: |
+            ## 🇮🇷 فارسی
+
+            ### تغییرات نسخه ۱۸.۸
+            - اضافه‌شدن صفحه «راهنمای استفاده» به برنامه، همراه با بخش‌های بازشونده برای آموزش قسمت‌های مختلف و پاسخ به پرسش‌های رایج.
+            - رفع و بهبود موارد گزارش‌شده در برنامه و آماده‌سازی نسخه پایدار ۱۸.۸.
+            - بهبود فرایند ساخت خودکار و انتشار فایل نصب ویندوز.
+            - اصلاح بررسی‌های خودکار پروژه برای اطمینان از کامپایل ماژول‌ها و اجرای آزمون‌های اصلی.
+
+            ### دریافت و نصب
+            فایل نصب ویندوز را از بخش دارایی‌های همین انتشار با نام `BuildingManager_Setup.exe` دریافت کنید.
+
+            ---
+
+            ## 🇬🇧 English
+
+            ### What's new in v18.8
+            - Added an in-app “User Guide” page with expandable sections covering key features and frequently asked questions.
+            - Fixed reported issues and made improvements in preparation for the stable v18.8 release.
+            - Improved the automated Windows build and release process.
+            - Updated project smoke checks to verify Python module compilation and core functionality.
+
+            ### Download and install
+            Download `BuildingManager_Setup.exe` from the Assets section of this release.
           overwrite_files: true
           files: dist/BuildingManager_Setup.exe
         env:
