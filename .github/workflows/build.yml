@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - refactor/modular-v18.7
+      - release/v18.7
     tags:
       - "v*"
 
@@ -60,10 +61,12 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/release/v18.7'
         uses: softprops/action-gh-release@v2
         with:
-          name: BuildingManager ${{ github.ref_name }}
+          name: BuildingManager v18.7
+          tag_name: v18.7
+          target_commitish: main
           generate_release_notes: true
           files: dist/BuildingManager_Setup.exe
         env:
