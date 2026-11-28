@@ -383,7 +383,7 @@ def _validate_raw_i18n():
             seen.add(key)
     if failures:
         details = "; ".join(failures)
-        AppLogger.error(f"_validate_raw_i18n failed: {details}")
+        AppLogger.warning(f"_validate_raw_i18n failed: {details}")
         raise AssertionError(f"_validate_raw_i18n failed: {details}")
 
 
