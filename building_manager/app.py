@@ -125,6 +125,8 @@ class App(tk.Tk, ReportsMixin):
         menu.add_command(label=T("دسته‌بندی‌ها"), command=self.manage_categories)
         menu.add_command(label=T("تنظیمات"), command=lambda: self.show("settings"))
         help_menu = tk.Menu(menu, tearoff=False, **opts)
+        help_menu.add_command(label=T("راهنمای استفاده"), command=lambda: self.show("help"))
+        help_menu.add_separator()
         help_menu.add_command(label=T("گزارش خطاها"), command=self.show_error_log)
         menu.add_cascade(label=T("راهنما"), menu=help_menu)
         self.config(menu=menu)
@@ -341,6 +343,86 @@ class App(tk.Tk, ReportsMixin):
         ttk.Button(buttons, text="پاک کردن لاگ", command=clear_log).pack(side="right", padx=4)
         ttk.Button(buttons, text="کپی", command=copy_log).pack(side="right", padx=4)
         ttk.Button(buttons, text=T("بستن"), command=win.destroy).pack(side="left", padx=4)
+
+
+    def page_help(self, parent):
+        """راهنمای متنی برنامه با بخش‌های بازشونده و ناحیه‌ی اسکرول‌پذیر."""
+        self.page_title(parent, T("راهنمای استفاده"))
+        ttk.Label(
+            parent,
+            text="برای مشاهده‌ی توضیحات هر قسمت، روی عنوان آن کلیک کنید.",
+            style="Muted.TLabel",
+        ).pack(anchor=text_anchor(), padx=22, pady=(0, 8))
+
+        holder = ttk.Frame(parent)
+        holder.pack(fill="both", expand=True, padx=14, pady=(0, 12))
+        canvas = tk.Canvas(holder, bg=self.colors["bg"], highlightthickness=0, bd=0)
+        scrollbar = ttk.Scrollbar(holder, orient="vertical", command=canvas.yview)
+        content = ttk.Frame(canvas)
+        window_id = canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda _event: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda event: canvas.itemconfigure(window_id, width=event.width))
+        canvas.configure(yscrollcommand=_autohide_scrollbar(scrollbar))
+        scrollbar.pack(side=side_end(), fill="y")
+        canvas.pack(side=side_start(), fill="both", expand=True)
+
+        sections = [
+            ("شروع سریع و آشنایی با محیط برنامه",
+             "پس از اجرای برنامه، صفحه‌ی اصلی نمای کلی ساختمان و وضعیت مالی را نشان می‌دهد. برای دیدن اطلاعات یک ماه، سال موردنظر را انتخاب کنید و روی کارت همان ماه بزنید. در صفحه‌ی ماهانه، زبانه‌های خلاصه مالی، شارژ و پرداختی‌ها، هزینه‌ها و درآمدهای متفرقه در دسترس هستند."),
+            ("مدیریت واحدها",
+             "از منوی اصلی وارد «مدیریت واحدها» شوید. با گزینه‌ی «افزودن واحد» شماره واحد، طبقه، اطلاعات مالک و در صورت وجود مستأجر را ثبت کنید. برای تغییر اطلاعات، واحد را انتخاب و «ویرایش واحد» را بزنید. اگر واحد سابقه‌ی مالی داشته باشد، برای حفظ تاریخچه به‌جای حذف کامل غیرفعال می‌شود. واحدهای غیرفعال را می‌توانید با گزینه‌ی نمایش واحدهای غیرفعال ببینید."),
+            ("تعیین شارژ و مبلغ پرداختی هر واحد",
+             "در صفحه‌ی ماهانه و زبانه‌ی خلاصه مالی، مبلغ پیش‌فرض شارژ هر واحد را وارد و ذخیره کنید. در صورت نیاز می‌توانید مبلغ را تا پایان سال اعمال کنید یا برای واحدهای مختلف مبلغ جداگانه تعیین کنید. اگر حساب دوم فعال باشد، تنظیمات آن نیز جداگانه نمایش داده می‌شود."),
+            ("ثبت واریزی‌ها و پرداخت‌های واحدها",
+             "در زبانه‌ی «شارژ و پرداختی‌ها»، گزینه‌ی «ثبت پرداخت جدید» را انتخاب کنید. سپس واحد، نوع پرداخت، مبلغ، تاریخ و توضیحات را وارد کنید. برای اصلاح یا حذف یک رکورد، ابتدا آن را از جدول انتخاب کنید و گزینه‌ی مربوط را بزنید. با انتخاب یک ردیف می‌توانید رسید پرداخت آن را نیز تهیه کنید. مبلغ صفر هم برای ثبت پرداخت قابل استفاده است."),
+            ("ثبت و مدیریت هزینه‌ها",
+             "در زبانه‌ی «هزینه‌ها»، گزینه‌ی «ثبت هزینه جدید» را بزنید و عنوان، دسته‌بندی، مبلغ، تاریخ، حساب پرداخت‌کننده و توضیحات را وارد کنید. برای افزودن یا مدیریت دسته‌بندی‌ها از گزینه‌ی «دسته‌بندی‌ها» استفاده کنید. هزینه‌های ثبت‌شده در جدول همان ماه نمایش داده می‌شوند."),
+            ("ثبت درآمدهای متفرقه",
+             "در زبانه‌ی «درآمدهای متفرقه»، گزینه‌ی «ثبت درآمد جدید» را انتخاب کنید. عنوان درآمد، مبلغ، تاریخ دریافت، منبع درآمد و حساب مقصد را مشخص کنید. این بخش برای درآمدهایی است که در قالب واریزی شارژ یا پرداختی واحدها ثبت نمی‌شوند."),
+            ("بررسی بدهکاران و مانده حساب",
+             "از بخش «بدهکاران» می‌توانید وضعیت واحدها را بررسی کنید؛ از جمله مبالغ پرداخت‌شده، سهم تعیین‌شده، بدهی یا بستانکاری ماه‌های قبل و مانده حساب. در صورت فعال بودن چندحسابی، نوع حساب را نیز انتخاب کنید. برای نگهداری یا چاپ فهرست بدهکاران، خروجی PDF همین بخش را تهیه کنید."),
+            ("گزارش‌گیری PDF و Excel",
+             "در صفحه‌ی اصلی، گزارش PDF سالانه و چندماهه و خروجی Excel سالانه در دسترس است. در خلاصه مالی هر ماه نیز می‌توانید گزارش PDF و فایل Excel همان ماه را بسازید. برای گزارش چندماهه، ماه‌های موردنظر را انتخاب کنید؛ بازه‌های انتخابی باید پیوسته باشند. گزارش PDF بدهکاران نیز از بخش بدهکاران قابل تهیه است."),
+            ("تنظیمات برنامه",
+             "از منوی «تنظیمات» می‌توانید نام و مشخصات ساختمان، اطلاعات مدیر، موجودی اولیه حساب‌ها، اندازه قلم، پوسته روشن یا تیره، زبان رابط کاربری و فعال یا غیرفعال بودن حالت چندحسابی را تغییر دهید. تنظیمات ترتیب جدول‌های خروجی PDF و Excel نیز در همین بخش قرار دارد. پس از تغییر، «ذخیره کلیه تغییرات تنظیمات» را انتخاب کنید."),
+            ("پشتیبان‌گیری و بازیابی اطلاعات",
+             "برای تهیه نسخه پشتیبان، از منوی «پرونده» گزینه‌ی «پشتیبان‌گیری» را انتخاب و محل ذخیره فایل را مشخص کنید. برای برگرداندن اطلاعات، «بازیابی پشتیبان» را بزنید و فایل پشتیبان را انتخاب کنید؛ توجه داشته باشید که بازیابی، اطلاعات فعلی را با اطلاعات فایل پشتیبان جایگزین می‌کند. برنامه هنگام خروج نیز پشتیبان‌گیری خودکار انجام می‌دهد. بهتر است نسخه‌های پشتیبان را در محل دیگری هم نگه دارید."),
+            ("سؤالات رایج",
+             "• آیا برای استفاده از برنامه اینترنت لازم است؟ خیر؛ برنامه برای استفاده‌ی عادی آفلاین است.\n• اطلاعات کجا ذخیره می‌شوند؟ به‌صورت محلی در پوشه‌ی داده‌های BuildingManager در پروفایل کاربر ویندوز.\n• اگر اشتباهاً اطلاعاتی را حذف یا تغییر دادم چه کنم؟ در صورت داشتن فایل پشتیبان سالم، از گزینه‌ی بازیابی استفاده کنید.\n• چرا بعضی گزینه‌ها را نمی‌بینم؟ برخی گزینه‌ها، مانند حساب دوم، فقط در صورت فعال بودن حالت چندحسابی نمایش داده می‌شوند.\n• اگر برنامه خطا داد چه کنم؟ از منوی «راهنما» گزینه‌ی «گزارش خطاها» را باز کنید و متن گزارش را برای بررسی نگه دارید.")
+        ]
+
+        for title, description in sections:
+            section = ttk.Frame(content, style="Card.TFrame", padding=(8, 7))
+            section.pack(fill="x", padx=6, pady=4)
+            panel = ttk.Frame(section, style="Card.TFrame", padding=(12, 8))
+            state = {"open": False}
+            button = ttk.Button(section, text="＋ " + title, style="TButton")
+            button.configure(command=lambda p=panel, st=state, b=button, t=title, d=description:
+                             self._toggle_help_section(p, st, b, t, d, content))
+            button.pack(fill="x")
+
+    def _toggle_help_section(self, panel, state, button, title, description, content):
+        """باز و بسته کردن یک بخش از راهنمای استفاده."""
+        if state["open"]:
+            panel.pack_forget()
+            state["open"] = False
+            button.configure(text="＋ " + title)
+            return
+
+        for child in panel.winfo_children():
+            child.destroy()
+        label = ttk.Label(
+            panel,
+            text=description,
+            justify="right" if i18n.rtl else "left",
+            anchor=text_anchor(),
+            wraplength=max(320, content.winfo_width() - 60),
+            style="CardText.TLabel",
+        )
+        label.pack(fill="x", anchor=text_anchor())
+        panel.pack(fill="x", padx=2, pady=(5, 2))
+        state["open"] = True
+        button.configure(text="− " + title)
 
     def report_callback_exception(self, exc_type, exc_value, exc_tb):
         AppLogger.log("error", "Tk callback exception", exc_info=(exc_type, exc_value, exc_tb))
